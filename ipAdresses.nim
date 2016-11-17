@@ -1,72 +1,74 @@
 import net
 import strutils
 import parseutils
+import sequtils
 
-proc buildIpAddresses(se: seq[seq[string]]): seq[IpAddress] =
-  ## build sequenze of IpAddress out of @[@[10], @[1, 2, 3], @[0], @[4, 5, 6]]
-  result = @[]
+iterator buildIpAddressV4(se: seq[seq[string]]): IpAddress =
+  ## build sequenze of IpAddress out of eg @[@[10], @[1, 2, 3], @[0], @[4, 5, 6]]
+  # result = @[]
+  # TODO this is stupid
   var buf: string = ""
-  for i, octet in se:
-    for part in octet:
+  if se.len == 4:
+    for one in se[0]:
+      for two in se[1]:
+        for three in se[2]:
+          for four in se[3]:
+            yield parseIpAddress("$1.$2.$3.$4" % [one,two,three,four] )
 
+iterator buildIpAddressV6(se: seq[seq[string]]): IpAddress =
+  ## build sequenze of IpAddress out of @[@[10], @[1, 2, 3], @[0], @[4, 5, 6]]
+  # result = @[]
+  # var buf: string = ""
+  # if se.len == 4:
+  #   for one in se[0]:
+  #     for two in se[1]:
+  #       for three in se[2]:
+  #         for four in se[3]:
+  #           yield parseIpAddress("$1.$2.$3.$4" % [one,two,three,four] )
+  discard
 
-
-
-proc ip(ips: string): seq[IpAddress] = 
+proc expandV4(ips: string): seq[seq[string]] =  
   var octets: seq[seq[string]] = @[]
-  if ips.contains(':'):
+  for octet in ips.split("."):
+    if not (',' in octet) and not ('-' in octet): # and "," not in octet:
+      octets.add(@[octet])
+    else:
+      var buf: seq[string] = @[]
+      for comSep in octet.split(","):
+        if "-" in comSep:
+          var rangeParts = comSep.split("-")
+          for i in (parseInt rangeParts[0])..(parseInt rangeParts[1]):
+            buf.add($i)       
+        else:
+          buf.add(comSep)
+      octets.add(buf)
+  return octets
+
+proc expandV6(ips: string): seq[seq[string]] =  
+  discard
+
+iterator ips*(ipStr: string): IpAddress = 
+  ## this parses a string like this "192.168.1,2.10-100"
+  ## and yields an IpAddress for every ip in the range.
+  var ranges: seq[seq[string]]
+  if ipStr.contains(':'):
     # ipv6
-  #   # return parseIPv6Address(address_str)
-    discard
+    ranges = expandV6(ipStr)
+    for ip in buildIpAddressV6(ranges):
+      yield ip
   else:
-  #   # ipv4
-  #   # return parseIPv4Address(address_str)  
-    for octet in ips.split("."):
-      # octet = "10" , "1,3" , "1-9" , "1,3,5-9"
-      # echo octet
+    # ipv4
+    ranges = expandV4(ipStr)
+    for ip in buildIpAddressV4(ranges):
+      yield ip
 
-      if not (',' in octet) and not ('-' in octet): # and "," not in octet:
-        octets.add(@[octet])
-      else:
-        var buf: seq[string] = @[]
-        for comSep in octet.split(","):
-          if "-" in comSep:
-            var rangeParts = comSep.split("-")
-            for i in (parseInt rangeParts[0])..(parseInt rangeParts[1]):
-              buf.add($i)       
-          else:
-            buf.add(comSep)
-        octets.add(buf)
-    echo octets
+when isMainModule:
+  for ip in ips("192.168.1,2.1-10"):
+   echo ip
 
-
-
-      # var comParts: seq[string] = @[]
-      # for comSep in octet.split(","):
-        # if '-' in comSep:
-          
-          # var rangeParts = octet.split("-")
-          # var rangeOctet: seq[string] = @[]
-          # for i in (parseInt rangeParts[0])..(parseInt rangeParts[1]):
-            # rangeOctet.add($i)
-          # octets.add(rangeOctet)
-      # else:
-        # octets.add(octet)
-      # if not (',' in octet) and not ('-' in octet): # and "," not in octet:
-        # octets.add(@[octet])
-    # discard
-  # echo octets
-
-var a=1
-var b=10
-# echo a..b
-
-# echo parseIpAddress("10.0.0.1")
-# discard ip("10.0.0.1,2,4-6")
-discard ip("10.1-3.0.4-6")
 
 # when isMainModule:
-  # assert ip("10.0.0.1,2,3") == @[parseIpAddress "10.0.0.1", parseIpAddress "10.0.0.2", parseIpAddress "10.0.0.3"]
+  # assert buildIpAddresses(nmapIp("10.0.0.1,2,3")) == @[parseIpAddress "10.0.0.1", parseIpAddress "10.0.0.2", parseIpAddress "10.0.0.3"]
   # assert ip("10.0.0.1,2,4-6") == @[ parseIpAddress "10.0.0.1",  parseIpAddress "10.0.0.2",  parseIpAddress "10.0.0.4",  parseIpAddress "10.0.0.5",  parseIpAddress "10.0.0.6"]
   # assert ip("10.0.0.3-6") == @["10.0.0.3", "10.0.0.4", "10.0.0.5", "10.0.0.6"]
   # assert ip("10.0.1-2.1-3") == @["10.0.1.1", "10.0.1.2", "10.0.1.3", "10.0.2.1", "10.0.2.2", "10.0.2.3",]
