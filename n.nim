@@ -13,8 +13,10 @@ proc mycheck(ip: string, port: int): Future[void] {.async.} =
     echo ip, " closed!"
     socket.close()
 
-for myip in ips("192.168.2.1-10,12-100,101,100-254"):
-  # echo "scan ", myip
-  asyncCheck mycheck($myip, 22)
 
-runForever()  
+proc scan(targets: string): Future[void] {.async.} =
+  for myip in ips(targets):
+    echo "scan ", myip
+    asyncCheck mycheck($myip, 22)
+
+waitFor scan("192.168.2.1-10,12-100,101,100-254")
