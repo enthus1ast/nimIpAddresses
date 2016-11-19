@@ -174,6 +174,6 @@ when isMainModule:
 
 when isMainModule:
   for ip in ips("192.168.1,2.1-10"):
-   echo ip
+    echo ip
   for ip in ips("7d0:db8::594:57ab-57b7,1111"):
     echo ip
