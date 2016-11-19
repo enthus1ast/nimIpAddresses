@@ -1,6 +1,5 @@
 #
 #
-#            (Nim's Runtime Library)
 #        (c) Copyright 2016 David Krause
 #
 #    See the file "copying.txt", included in this
